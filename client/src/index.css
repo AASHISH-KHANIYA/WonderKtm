@@ -1,0 +1,58 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Brand tokens (RGB triplets). Change here, or override at runtime from Admin → Settings → Theme. */
+:root {
+  --c-navy: 28 37 65;      /* #1C2541 lapis night */
+  --c-blue: 46 76 140;     /* #2E4C8C lapis */
+  --c-cream: 238 240 236;  /* #EEF0EC lime-wash */
+  --c-yellow: 201 162 74;  /* #C9A24A Patan brass */
+  --c-ink: 34 37 43;       /* #22252B charcoal */
+  --c-muted: 95 102 112;   /* #5F6670 slate, secondary text */
+  --c-line: 216 219 213;   /* #D8DBD5 mortar, borders */
+  --c-wall: 221 226 220;   /* #DDE2DC gallery wall (homepage hero) */
+  --c-mount: 248 249 246;  /* #F8F9F6 picture mount */
+}
+
+@layer base {
+  html { scroll-behavior: smooth; }
+  body { @apply bg-cream font-sans text-ink antialiased; }
+  /* Marcellus ships a single weight: never let the browser fake a bold. */
+  h1, h2, h3 { @apply font-display font-normal text-navy; letter-spacing: -0.005em; }
+  .font-display, h1, h2, h3 { font-synthesis: none; }
+  :focus-visible { outline: 2px solid rgb(var(--c-blue)); outline-offset: 3px; border-radius: 4px; }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition-duration: .01ms !important; scroll-behavior: auto !important; } }
+}
+
+@layer components {
+  .btn { @apply inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50; }
+  .btn-primary { @apply btn bg-navy text-white hover:bg-brand; }
+  .btn-accent { @apply btn bg-gold text-navy hover:brightness-95; }
+  .btn-outline { @apply btn border border-navy/20 bg-white text-navy hover:border-navy; }
+  .btn-ghost { @apply btn text-navy hover:bg-navy/5; }
+  .btn-danger { @apply btn bg-red-600 text-white hover:bg-red-700; }
+  .btn-sm { @apply px-3.5 py-1.5 text-xs; }
+  .input { @apply w-full rounded-xl border border-line bg-white px-3.5 py-2.5 text-sm text-ink placeholder:text-muted/70 focus:border-brand disabled:bg-cream; }
+  .card { @apply rounded-xl2 border border-line bg-white shadow-soft; }
+  .container-x { @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8; }
+  .prose-wk { @apply text-[15px] leading-7 text-ink/90; }
+  .prose-wk h1 { @apply mb-4 text-4xl; } .prose-wk h2 { @apply mb-2 mt-8 text-2xl; } .prose-wk p { @apply mb-3; } .prose-wk ul { @apply mb-3 list-disc pl-6; }
+  .skeleton { @apply animate-pulse rounded-lg bg-navy/5; }
+
+  /* Homepage gallery wall: framed pictures hung on a shared centre line. */
+  .frame {
+    position: relative; overflow: hidden; padding: 8%; border: clamp(4px, 0.8vw, 7px) solid rgb(var(--c-navy)); background: rgb(var(--c-mount));
+    box-shadow: 0 2px 3px rgb(var(--c-navy) / 0.12), 0 24px 30px -22px rgb(var(--c-navy) / 0.6);
+  }
+  .frame-brass { border-color: rgb(var(--c-yellow)); }
+  .frame-mount { @apply grid h-full w-full place-items-center overflow-hidden bg-wall/40; box-shadow: inset 0 1px 3px rgb(var(--c-navy) / 0.18); container-type: inline-size; }
+  /* Category name shown when a frame has no picture; sized to the frame so long names never clip. */
+  .frame-title { font-size: clamp(0.8rem, 12cqi, 1.75rem); overflow-wrap: anywhere; }
+  /* Picture light: a brass glow falls on the frame when it is pointed at or focused. */
+  .frame::after { content: ''; position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity 0.35s ease; background: radial-gradient(70% 45% at 50% 0%, rgb(255 236 190 / 0.45), transparent 75%); }
+  .frame-link:hover .frame::after, .frame-link:focus-visible .frame::after { opacity: 1; }
+  .frame-link:hover .frame-name, .frame-link:focus-visible .frame-name { @apply text-brand underline decoration-gold decoration-2 underline-offset-4; }
+  .hang { animation: hang 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both; transform-origin: 50% 0; }
+  @keyframes hang { from { opacity: 0; transform: translateY(-10px) rotate(-0.8deg); } }
+}

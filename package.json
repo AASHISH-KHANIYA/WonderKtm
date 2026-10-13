@@ -1,0 +1,19 @@
+{
+  "name": "wonderktm",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Wonderktm — premium home décor & gifting e-commerce platform",
+  "workspaces": ["client", "server"],
+  "scripts": {
+    "dev": "concurrently -n server,client -c blue,yellow \"npm run dev -w server\" \"npm run dev -w client\"",
+    "build": "npm run build -w server && npm run build -w client",
+    "start": "npm run start -w server",
+    "test": "npm run test -w server",
+    "typecheck": "npm run typecheck -w server && npm run typecheck -w client",
+    "seed": "npm run seed -w server",
+    "create-owner": "npm run create-owner -w server",
+    "package": "node scripts/package-zip.mjs"
+  },
+  "devDependencies": { "concurrently": "^9.0.1" },
+  "engines": { "node": ">=20" }
+}

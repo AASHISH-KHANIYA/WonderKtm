@@ -9,7 +9,7 @@ import { asyncHandler, escapeRegex, pageParams, paginated, slugify } from '../ut
 import { audit } from '../services/audit.js';
 import { adjustStock } from '../services/inventory.js';
 import { getSettings } from '../services/settings.js';
-import { putFile, validateImageUpload, deleteFile } from '../services/storage.js';
+import { putFile, validateImageUpload, deleteFile, storageProviderOf } from '../services/storage.js';
 import { categoryInput, productInput } from '../validators/schemas.js';
 import { toCsv } from '../utils/csv.js';
 
@@ -193,7 +193,7 @@ adminCatalogRouter.delete('/products/:id', requireRole('owner'), asyncHandler(as
     return res.json({ archived: true, message: 'This product appears in past orders, so it was archived instead of deleted.' });
   }
   await Product.deleteOne({ _id: p._id });
-  for (const i of p.images ?? []) if (i.publicId) await deleteFile(i.publicId, i.publicId.startsWith('wonderktm/') ? 'cloudinary' : 'local');
+  for (const i of p.images ?? []) if (i.publicId) await deleteFile(i.publicId, storageProviderOf(i.publicId));
   await audit(req, 'product.delete', 'Product', p._id);
   res.json({ deleted: true });
 }));

@@ -213,3 +213,18 @@ export const StoreSettings = model(
     { timestamps: true, minimize: false }
   )
 );
+
+// Image bytes for STORAGE_DRIVER=mongo. Kept in its own collection so catalog queries never load file data.
+export const FileBlob = model(
+  'FileBlob',
+  new Schema(
+    {
+      data: { type: Buffer, required: true },
+      mime: { type: String, required: true },
+      size: Number,
+      folder: String,
+      private: { type: Boolean, default: false },
+    },
+    { timestamps: true }
+  )
+);

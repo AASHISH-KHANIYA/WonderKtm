@@ -9,7 +9,7 @@ const schema = z.object({
   JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
   JWT_EXPIRES_IN: z.string().default('12h'),
   COOKIE_DOMAIN: z.string().optional().default(''),
-  STORAGE_DRIVER: z.enum(['cloudinary', 'local']).default('local'),
+  STORAGE_DRIVER: z.enum(['cloudinary', 'mongo', 'local']).default('local'),
   CLOUDINARY_CLOUD_NAME: z.string().optional().default(''),
   CLOUDINARY_API_KEY: z.string().optional().default(''),
   CLOUDINARY_API_SECRET: z.string().optional().default(''),

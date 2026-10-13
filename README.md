@@ -47,6 +47,7 @@ Sessions are JWTs in an **HTTP-only, SameSite=Lax, Secure (in production)** cook
 
 ## 11. Image storage
 * `STORAGE_DRIVER=local` — development only (files in `server/uploads-public` and `server/uploads-private`).
+* `STORAGE_DRIVER=mongo` — images are stored in MongoDB (`fileblobs` collection) and served from `/api/files/:id` with long cache headers. Works on Vercel with no extra service; best for a small catalogue of modest-sized images (Vercel caps uploads at ~4.5 MB, Atlas free tier at 512 MB). Payment evidence is stored as private and only streamed to staff.
 * `STORAGE_DRIVER=cloudinary` + `CLOUDINARY_CLOUD_NAME/API_KEY/API_SECRET` — production. Product/QR images are uploaded as public assets; **payment evidence is uploaded as `authenticated` assets and is only streamed to authorised staff through the API** (no public URL). If credentials are missing, uploads fail with a clear message and *Admin → Settings → System status* shows it.
 
 ## 12. eSewa, Khalti and UPI QR images

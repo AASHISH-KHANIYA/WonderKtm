@@ -15,6 +15,7 @@ import { adminStoreRouter } from './routes/adminStore.js';
 import { authRouter } from './routes/auth.js';
 import { publicRouter } from './routes/public.js';
 import { seoRouter } from './routes/seo.js';
+import { readPublicMongo } from './services/storage.js';
 
 export function createApp() {
   const app = express();
@@ -34,6 +35,15 @@ export function createApp() {
   app.use(seoRouter);
   // Only the *public* upload folder is exposed. Private payment evidence lives elsewhere and is served solely through authorised routes.
   app.use('/uploads', express.static(path.resolve(process.cwd(), 'uploads-public'), { maxAge: '7d', index: false, dotfiles: 'deny' }));
+  // Public images stored in MongoDB. Ids are never reused, so browsers and Vercel's CDN may cache them for a year.
+  app.get('/api/files/:id', async (req, res, next) => {
+    try {
+      const f = await readPublicMongo(req.params.id);
+      if (!f) return res.status(404).json({ message: 'Image not found.' });
+      res.set({ 'Content-Type': f.mime, 'Content-Length': String(f.data.length), 'Cache-Control': 'public, max-age=31536000, s-maxage=31536000, immutable' });
+      res.end(f.data);
+    } catch (e) { next(e); }
+  });
 
   app.use('/api', limiter(1, 300), loadUser, csrfGuard);
   app.use('/api/auth', authRouter);

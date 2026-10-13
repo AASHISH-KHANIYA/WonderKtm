@@ -3,6 +3,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { v2 as cloudinary } from 'cloudinary';
 import { env, isProd } from '../config/env.js';
+import { FileBlob } from '../models/index.js';
 import { AppError } from '../utils/errors.js';
 
 export type ImageMime = 'image/jpeg' | 'image/png' | 'image/webp';
@@ -25,7 +26,15 @@ export function validateImageUpload(file: { buffer: Buffer; size: number } | und
   return mime;
 }
 
-export interface StoredFile { key: string; url?: string; provider: 'cloudinary' | 'local' }
+export interface StoredFile { key: string; url?: string; provider: 'cloudinary' | 'mongo' | 'local' }
+
+const mongoIdRe = /^[a-f0-9]{24}$/;
+
+/** Works out which backend a stored key belongs to (Cloudinary ids are prefixed, Mongo ids are ObjectIds, anything else is a local path). */
+export function storageProviderOf(key: string): StoredFile['provider'] {
+  if (key.startsWith('wonderktm/')) return 'cloudinary';
+  return mongoIdRe.test(key) ? 'mongo' : 'local';
+}
 
 const localRoot = (priv: boolean) => path.resolve(process.cwd(), priv ? 'uploads-private' : 'uploads-public');
 
@@ -34,6 +43,7 @@ export function storageStatus() {
   if (env.STORAGE_DRIVER === 'cloudinary') {
     return { driver: 'cloudinary', configured: cloudinaryReady, note: cloudinaryReady ? 'Cloudinary is configured.' : 'Cloudinary credentials are missing. Image uploads are disabled until CLOUDINARY_* variables are set.' };
   }
+  if (env.STORAGE_DRIVER === 'mongo') return { driver: 'mongo', configured: true, note: 'Images are stored in MongoDB. Keep uploads small; each image counts toward your database storage.' };
   return { driver: 'local', configured: true, note: isProd ? 'Local disk storage is not suitable for production. Switch to Cloudinary or another managed object store.' : 'Local development storage is active.' };
 }
 
@@ -58,6 +68,11 @@ export async function putFile(buf: Buffer, mime: ImageMime, opts: { folder: stri
     });
     return { key: publicId, provider: 'cloudinary', url: opts.private ? undefined : cloudinary.url(publicId, { secure: true, fetch_format: 'auto', quality: 'auto' }) };
   }
+  if (env.STORAGE_DRIVER === 'mongo') {
+    const doc = await FileBlob.create({ data: buf, mime, size: buf.length, folder: opts.folder, private: opts.private });
+    const key = String(doc._id);
+    return { key, provider: 'mongo', url: opts.private ? undefined : `/api/files/${key}` };
+  }
   const rel = path.join(opts.folder, `${id}.${EXT[mime]}`);
   const full = path.join(localRoot(opts.private), rel);
   await fs.mkdir(path.dirname(full), { recursive: true });
@@ -75,6 +90,11 @@ export async function readPrivate(key: string, provider: string): Promise<{ data
     const data = Buffer.from(await res.arrayBuffer());
     return { data, mime: detectImageType(data) ?? 'image/jpeg' };
   }
+  if (provider === 'mongo') {
+    const doc = mongoIdRe.test(key) ? await FileBlob.findOne({ _id: key, private: true }) : null;
+    if (!doc) throw new AppError(404, 'File not found.', 'NOT_FOUND');
+    return { data: doc.data, mime: doc.mime as ImageMime };
+  }
   const full = path.resolve(localRoot(true), key);
   if (!full.startsWith(localRoot(true) + path.sep)) throw new AppError(400, 'Invalid file key.');
   const data = await fs.readFile(full).catch(() => {
@@ -88,10 +108,19 @@ export async function deleteFile(key: string, provider: string, priv = false) {
     if (provider === 'cloudinary') {
       ensureReady();
       await cloudinary.uploader.destroy(key, { type: priv ? 'authenticated' : 'upload', resource_type: 'image' });
+    } else if (provider === 'mongo') {
+      if (mongoIdRe.test(key)) await FileBlob.deleteOne({ _id: key, private: priv });
     } else {
       await fs.rm(path.resolve(localRoot(priv), key), { force: true });
     }
   } catch {
     /* best-effort cleanup */
   }
+}
+
+/** Public image stored in MongoDB, or null when it is missing or private. */
+export async function readPublicMongo(id: string): Promise<{ data: Buffer; mime: string } | null> {
+  if (!mongoIdRe.test(id)) return null;
+  const doc = await FileBlob.findOne({ _id: id, private: false }, { data: 1, mime: 1 });
+  return doc ? { data: doc.data, mime: doc.mime } : null;
 }
